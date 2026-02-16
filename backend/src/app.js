@@ -15,13 +15,8 @@ logger.info('Application starting...');
 
 // Security middleware
 app.use(helmet());
-// CORS configuration
-const allowedOrigins = [
-  'http://localhost:3000',
-  'http://localhost:5173',
-  process.env.FRONTEND_URL || 'https://your-frontend.vercel.app'
-].filter(Boolean);
 
+// CORS configuration
 app.use(cors({
   origin: '*', // Allow all origins (for testing)
   credentials: true,
