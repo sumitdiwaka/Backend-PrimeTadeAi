@@ -5,7 +5,7 @@ const { protect } = require('../../middleware/auth');
 const { validateRegister, validateLogin } = require('../../middleware/validation');
 
 
-console.log('Auth Controller Functions:', { register, login, getMe }); // Debug line
+console.log('Auth Controller Functions:', { register, login, getMe }); 
 
 router.post('/register', validateRegister, register);
 router.post('/login', validateLogin, login);

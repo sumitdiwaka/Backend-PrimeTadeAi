@@ -8,19 +8,14 @@ const generateToken = (id) => {
   });
 };
 
-// @desc    Register user
-// @route   POST /api/v1/auth/register
-// @access  Public
 exports.register = async (req, res, next) => {
   try {
     const { name, email, password, role, adminSecret } = req.body;
 
-    // 1. Normalize the role to lowercase to avoid "Admin" vs "admin" issues
     const requestedRole = role ? role.toLowerCase() : 'user';
 
-    console.log('📝 Registration attempt:', { name, email, requestedRole, adminSecret });
+    logger.info('📝 Registration attempt:', { name, email, requestedRole, adminSecret });
 
-    // Check if user exists
     const userExists = await User.findOne({ email });
     if (userExists) {
       return res.status(400).json({
@@ -33,21 +28,21 @@ exports.register = async (req, res, next) => {
     let userRole = 'user';
     const userCount = await User.countDocuments();
     
-    console.log('👥 Total users in DB:', userCount);
+    logger.info('👥 Total users in DB:', userCount);
     
-    // Case 1: First user becomes admin automatically
+   
     if (userCount === 0) {
       userRole = 'admin';
-      console.log('🎉 First user detected - System forcing ADMIN role');
+      logger.info('🎉 First user detected - System forcing ADMIN role');
     }
-    // Case 2: User selected admin (Check matches normalized string)
+    
     else if (requestedRole === 'admin') {
-      // ⚠️ CRITICAL: You MUST send 'adminSecret' in your request body for this to work
+     
       if (adminSecret === process.env.ADMIN_SECRET) {
         userRole = 'admin';
-        console.log('👑 Admin secret verified - Granting ADMIN role');
+       logger.info('👑 Admin secret verified - Granting ADMIN role');
       } else {
-        console.log('❌ Invalid admin secret provided. Input:', adminSecret);
+        logger.info('❌ Invalid admin secret provided. Input:', adminSecret);
         return res.status(403).json({
           success: false,
           message: 'Invalid admin secret key. You cannot register as admin without the correct secret.'
@@ -55,7 +50,7 @@ exports.register = async (req, res, next) => {
       }
     }
     
-    console.log('🎯 Final Assigned Role:', userRole);
+    logger.info('🎯 Final Assigned Role:', userRole);
 
     // Create user
     const user = await User.create({
@@ -79,19 +74,16 @@ exports.register = async (req, res, next) => {
       }
     });
   } catch (error) {
-    console.error('❌ Registration error:', error);
+   logger.error('❌ Registration error:', error);
     next(error);
   }
 };
 
-// @desc    Login user
-// @route   POST /api/v1/auth/login
-// @access  Public
 exports.login = async (req, res, next) => {
   try {
     const { email, password } = req.body;
 
-    console.log('🔑 Login attempt:', email);
+    logger.info('🔑 Login attempt:', email);
 
     const user = await User.findOne({ email }).select('+password');
     if (!user) {
@@ -111,7 +103,7 @@ exports.login = async (req, res, next) => {
 
     const token = generateToken(user._id);
 
-    console.log('✅ Login successful:', {
+    logger.info('✅ Login successful:', {
       email: user.email,
       role: user.role
     });
@@ -127,17 +119,14 @@ exports.login = async (req, res, next) => {
       }
     });
   } catch (error) {
-    console.error('❌ Login error:', error);
+    logger.error('❌ Login error:', error);
     next(error);
   }
 };
 
-// @desc    Get current user
-// @route   GET /api/v1/auth/me
-// @access  Private
 exports.getMe = async (req, res, next) => {
   try {
-    // req.user is set by auth middleware
+   
     const user = await User.findById(req.user.id);
     
     console.log('👤 GetMe - User from DB:', { 
@@ -156,7 +145,7 @@ exports.getMe = async (req, res, next) => {
       }
     });
   } catch (error) {
-    console.error('❌ GetMe error:', error);
+    logger.error('❌ GetMe error:', error);
     next(error);
   }
 };
