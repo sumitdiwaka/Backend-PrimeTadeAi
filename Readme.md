@@ -23,6 +23,17 @@ A secure, scalable REST API with authentication, role-based access control, and 
 
 ---
 
+## 🌐 Live Demo
+
+- **Frontend:** https://backend-prime-tade-ai.vercel.app
+- **Backend API:** https://backend-primetadeai.onrender.com/api/v1
+- **API Documentation:** https://backend-primetadeai.onrender.com/api-docs
+- **Health Check:** https://backend-primetadeai.onrender.com/health
+
+### Test Credentials
+- **User:** user@example.com / user123
+- **Admin:** admin@example.com / admin123
+
 ## 🚀 Tech Stack
 
 | Technology | Purpose |
