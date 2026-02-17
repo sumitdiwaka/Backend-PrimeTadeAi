@@ -9,7 +9,7 @@ const Register = () => {
     password: '',
     confirmPassword: '',
     role: 'user',
-    adminSecret: '',
+    adminSecret: ''
   });
   const [loading, setLoading] = useState(false);
   const [showAdminSecret, setShowAdminSecret] = useState(false);
@@ -52,9 +52,14 @@ const Register = () => {
       registrationData.adminSecret = formData.adminSecret;
     }
     
+    console.log('📤 Submitting registration:', registrationData);
+    
     const success = await register(registrationData);
     
     if (success) {
+      // After successful registration, check what role we got
+      const user = JSON.parse(localStorage.getItem('user'));
+      console.log('🎯 User after registration:', user);
       navigate('/dashboard');
     }
     
@@ -127,7 +132,7 @@ const Register = () => {
               </select>
             </div>
 
-            {/* Admin Secret Field (shown only when admin is selected) */}
+            {/* Admin Secret Field */}
             {showAdminSecret && (
               <div>
                 <label htmlFor="adminSecret" className="block text-sm font-medium text-gray-700">
@@ -144,7 +149,7 @@ const Register = () => {
                   onChange={handleChange}
                 />
                 <p className="mt-1 text-xs text-gray-500">
-                  Contact administrator for the secret key
+                  Use "admin123" as the secret key
                 </p>
               </div>
             )}

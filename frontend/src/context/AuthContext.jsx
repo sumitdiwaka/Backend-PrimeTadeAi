@@ -11,54 +11,83 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Check localStorage on initial load
     const token = localStorage.getItem('token');
     const storedUser = localStorage.getItem('user');
     
     if (token && storedUser) {
-      setUser(JSON.parse(storedUser));
+      try {
+        const parsedUser = JSON.parse(storedUser);
+        console.log('🔄 Loading user from storage:', parsedUser);
+        setUser(parsedUser);
+      } catch (e) {
+        console.error('Error parsing stored user:', e);
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+      }
     }
     setLoading(false);
   }, []);
 
   const login = async (email, password) => {
     try {
+      console.log('🔐 Login attempt for:', email);
+      
       const response = await api.post('/auth/login', { email, password });
       
+      console.log('📥 Login response:', response.data);
+      
       if (response.data.success) {
+        // Store in localStorage
         localStorage.setItem('token', response.data.token);
         localStorage.setItem('user', JSON.stringify(response.data.user));
+        
+        // Update state
         setUser(response.data.user);
-        toast.success(`Welcome back, ${response.data.user.name}!`);
+        
+        console.log('✅ User logged in with role:', response.data.user.role);
+        toast.success(`Welcome ${response.data.user.name}!`);
         return true;
       }
     } catch (error) {
+      console.error('❌ Login error:', error);
       return false;
     }
   };
 
-const register = async (userData) => {
-  try {
-    const response = await api.post('/auth/register', userData);
-    
-    if (response.data.success) {
-      localStorage.setItem('token', response.data.token);
-      localStorage.setItem('user', JSON.stringify(response.data.user));
-      setUser(response.data.user);
+  const register = async (userData) => {
+    try {
+      console.log('📝 Register attempt with data:', userData);
       
-      if (response.data.user.role === 'admin') {
-        toast.success('Admin account created successfully!');
-      } else {
-        toast.success('Registration successful!');
+      const response = await api.post('/auth/register', userData);
+      
+      console.log('📥 Register response:', response.data);
+      
+      if (response.data.success) {
+        // Store in localStorage
+        localStorage.setItem('token', response.data.token);
+        localStorage.setItem('user', JSON.stringify(response.data.user));
+        
+        // Update state
+        setUser(response.data.user);
+        
+        console.log('✅ User registered with role:', response.data.user.role);
+        
+        if (response.data.user.role === 'admin') {
+          toast.success('Admin account created successfully!');
+        } else {
+          toast.success('Registration successful!');
+        }
+        return true;
       }
-      return true;
+    } catch (error) {
+      console.error('❌ Register error:', error);
+      return false;
     }
-  } catch (error) {
-    toast.error(error.response?.data?.message || 'Registration failed');
-    return false;
-  }
-};
+  };
 
   const logout = () => {
+    console.log('👋 Logging out user:', user?.email);
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     setUser(null);
@@ -70,7 +99,7 @@ const register = async (userData) => {
     login,
     register,
     logout,
-    loading,
+    loading
   };
 
   return (
