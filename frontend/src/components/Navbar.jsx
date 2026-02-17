@@ -5,6 +5,8 @@ const Navbar = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
+  console.log('👤 Navbar user:', user); // Debug log
+
   const handleLogout = () => {
     logout();
     navigate('/login');
@@ -22,8 +24,12 @@ const Navbar = () => {
             {user ? (
               <>
                 <span>Welcome, {user.name}</span>
-                <span className="px-2 py-1 bg-blue-700 rounded text-sm">
-                  {user.role}
+                <span className={`px-2 py-1 rounded text-sm font-medium ${
+                  user.role === 'admin' 
+                    ? 'bg-purple-700 text-white' 
+                    : 'bg-blue-700 text-white'
+                }`}>
+                  {user.role === 'admin' ? '👑 ADMIN' : '👤 USER'}
                 </span>
                 <button
                   onClick={handleLogout}

@@ -11,17 +11,16 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check localStorage on initial load
     const token = localStorage.getItem('token');
     const storedUser = localStorage.getItem('user');
     
     if (token && storedUser) {
       try {
         const parsedUser = JSON.parse(storedUser);
-        console.log('🔄 Loading user from storage:', parsedUser);
+        console.log('👤 Loaded user from storage:', parsedUser);
         setUser(parsedUser);
-      } catch (e) {
-        console.error('Error parsing stored user:', e);
+      } catch (error) {
+        console.error('Error parsing stored user:', error);
         localStorage.removeItem('token');
         localStorage.removeItem('user');
       }
@@ -31,22 +30,19 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     try {
-      console.log('🔐 Login attempt for:', email);
+      console.log('🔑 Attempting login for:', email);
       
       const response = await api.post('/auth/login', { email, password });
       
-      console.log('📥 Login response:', response.data);
-      
       if (response.data.success) {
-        // Store in localStorage
+        const userData = response.data.user;
+        console.log('✅ Login successful, user data:', userData);
+        
         localStorage.setItem('token', response.data.token);
-        localStorage.setItem('user', JSON.stringify(response.data.user));
+        localStorage.setItem('user', JSON.stringify(userData));
+        setUser(userData);
         
-        // Update state
-        setUser(response.data.user);
-        
-        console.log('✅ User logged in with role:', response.data.user.role);
-        toast.success(`Welcome ${response.data.user.name}!`);
+        toast.success(`Welcome ${userData.name}! You are logged in as ${userData.role}`);
         return true;
       }
     } catch (error) {
@@ -57,27 +53,19 @@ export const AuthProvider = ({ children }) => {
 
   const register = async (userData) => {
     try {
-      console.log('📝 Register attempt with data:', userData);
+      console.log('📝 Registering user:', userData);
       
       const response = await api.post('/auth/register', userData);
       
-      console.log('📥 Register response:', response.data);
-      
       if (response.data.success) {
-        // Store in localStorage
+        const userData = response.data.user;
+        console.log('✅ Registration successful, user data:', userData);
+        
         localStorage.setItem('token', response.data.token);
-        localStorage.setItem('user', JSON.stringify(response.data.user));
+        localStorage.setItem('user', JSON.stringify(userData));
+        setUser(userData);
         
-        // Update state
-        setUser(response.data.user);
-        
-        console.log('✅ User registered with role:', response.data.user.role);
-        
-        if (response.data.user.role === 'admin') {
-          toast.success('Admin account created successfully!');
-        } else {
-          toast.success('Registration successful!');
-        }
+        toast.success(`Registration successful! You are registered as ${userData.role}`);
         return true;
       }
     } catch (error) {
@@ -87,7 +75,6 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = () => {
-    console.log('👋 Logging out user:', user?.email);
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     setUser(null);
@@ -99,7 +86,8 @@ export const AuthProvider = ({ children }) => {
     login,
     register,
     logout,
-    loading
+    loading,
+    isAdmin: user?.role === 'admin'
   };
 
   return (

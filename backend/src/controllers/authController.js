@@ -2,7 +2,6 @@ const User = require('../models/User');
 const jwt = require('jsonwebtoken');
 const logger = require('../utils/logger');
 
-// Generate JWT Token
 const generateToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, {
     expiresIn: process.env.JWT_EXPIRE
@@ -16,92 +15,71 @@ exports.register = async (req, res, next) => {
   try {
     const { name, email, password, role, adminSecret } = req.body;
 
-    console.log('📝 Registration attempt:', { email, requestedRole: role });
+    // 1. Normalize the role to lowercase to avoid "Admin" vs "admin" issues
+    const requestedRole = role ? role.toLowerCase() : 'user';
+
+    console.log('📝 Registration attempt:', { name, email, requestedRole, adminSecret });
 
     // Check if user exists
     const userExists = await User.findOne({ email });
     if (userExists) {
-      console.log('❌ User already exists:', email);
       return res.status(400).json({
         success: false,
         message: 'User already exists with this email'
       });
     }
 
-    // Check if this is the first user ever
+    // Determine role
+    let userRole = 'user';
     const userCount = await User.countDocuments();
-    console.log('👥 Total users in database:', userCount);
     
-    let finalRole = 'user'; // Default role
-
-    // CASE 1: First user becomes admin automatically
+    console.log('👥 Total users in DB:', userCount);
+    
+    // Case 1: First user becomes admin automatically
     if (userCount === 0) {
-      finalRole = 'admin';
-      console.log('🎉 First user - setting as ADMIN automatically');
+      userRole = 'admin';
+      console.log('🎉 First user detected - System forcing ADMIN role');
     }
-    // CASE 2: User selected admin and provided secret
-    else if (role === 'admin') {
-      const ADMIN_SECRET = process.env.ADMIN_SECRET || 'admin123';
-      console.log('🔑 Admin secret check:', { provided: adminSecret, required: ADMIN_SECRET });
-      
-      if (adminSecret === ADMIN_SECRET) {
-        finalRole = 'admin';
-        console.log('✅ Valid admin secret - setting as ADMIN');
+    // Case 2: User selected admin (Check matches normalized string)
+    else if (requestedRole === 'admin') {
+      // ⚠️ CRITICAL: You MUST send 'adminSecret' in your request body for this to work
+      if (adminSecret === process.env.ADMIN_SECRET) {
+        userRole = 'admin';
+        console.log('👑 Admin secret verified - Granting ADMIN role');
       } else {
-        console.log('❌ Invalid admin secret - setting as USER');
+        console.log('❌ Invalid admin secret provided. Input:', adminSecret);
         return res.status(403).json({
           success: false,
-          message: 'Invalid admin secret key'
+          message: 'Invalid admin secret key. You cannot register as admin without the correct secret.'
         });
       }
     }
-    // CASE 3: Regular user
-    else {
-      finalRole = 'user';
-      console.log('👤 Regular user - setting as USER');
-    }
+    
+    console.log('🎯 Final Assigned Role:', userRole);
 
-    console.log('🏷️ Final role to be assigned:', finalRole);
-
-    // Create user with the determined role
+    // Create user
     const user = await User.create({
       name,
       email,
       password,
-      role: finalRole
-    });
-
-    console.log('✅ User created in database:', {
-      id: user._id,
-      email: user.email,
-      role: user.role
+      role: userRole
     });
 
     // Generate token
     const token = generateToken(user._id);
 
-    // Send response
-    const responseData = {
+    res.status(201).json({
       success: true,
       token,
       user: {
         id: user._id,
         name: user.name,
         email: user.email,
-        role: user.role // This MUST be the actual role from database
+        role: user.role
       }
-    };
-
-    console.log('📤 Sending response with role:', responseData.user.role);
-    
-    // Log to file
-    logger.info(`✅ User registered: ${email} (Role: ${user.role})`);
-
-    res.status(201).json(responseData);
-
+    });
   } catch (error) {
     console.error('❌ Registration error:', error);
-    logger.error(`Registration error: ${error.message}`);
     next(error);
   }
 };
@@ -113,63 +91,43 @@ exports.login = async (req, res, next) => {
   try {
     const { email, password } = req.body;
 
-    console.log('🔐 Login attempt:', email);
+    console.log('🔑 Login attempt:', email);
 
-    // Check if user exists - MUST select +password to get the hashed password
     const user = await User.findOne({ email }).select('+password');
-    
     if (!user) {
-      console.log('❌ User not found:', email);
       return res.status(401).json({
         success: false,
         message: 'Invalid credentials'
       });
     }
 
-    console.log('✅ User found in DB:', { 
-      id: user._id, 
-      email: user.email, 
-      role: user.role,
-      hasPassword: !!user.password 
-    });
-
-    // Check password
     const isPasswordMatch = await user.comparePassword(password);
-    console.log('🔑 Password match:', isPasswordMatch);
-
     if (!isPasswordMatch) {
-      console.log('❌ Invalid password for:', email);
       return res.status(401).json({
         success: false,
         message: 'Invalid credentials'
       });
     }
 
-    // Generate token
     const token = generateToken(user._id);
 
-    // Send response with user data
-    const responseData = {
+    console.log('✅ Login successful:', {
+      email: user.email,
+      role: user.role
+    });
+
+    res.status(200).json({
       success: true,
       token,
       user: {
         id: user._id,
         name: user.name,
         email: user.email,
-        role: user.role // This comes DIRECTLY from database
+        role: user.role
       }
-    };
-
-    console.log('📤 Login response being sent:', responseData.user);
-    
-    // Log to file
-    logger.info(`✅ User logged in: ${email} (Role: ${user.role})`);
-
-    res.status(200).json(responseData);
-
+    });
   } catch (error) {
     console.error('❌ Login error:', error);
-    logger.error(`Login error: ${error.message}`);
     next(error);
   }
 };
